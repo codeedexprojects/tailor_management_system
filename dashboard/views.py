@@ -1100,6 +1100,13 @@ def update_add_order(request, dataid):
             order.clothdetails = None
             ordered_length = None
         cloth_name=order.clothdetails.name
+
+        if order.customer_id:
+            customer = order.customer_id
+            customer.name = nm
+            customer.mobile = mn
+            customer.save()
+            
         # Update assigned_works for the old tailor and new tailor
         if old_tailor != new_tailor:
             old_tailor.assigned_works -= 1
