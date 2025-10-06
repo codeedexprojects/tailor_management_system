@@ -434,8 +434,7 @@ def edit_order_reception(request, dataid):
 
 def update_add_order_reception(request, dataid):
     if request.method == "POST":
-        # Your existing form processing logic
-        id = request.POST.get('id')
+        # Basic field retrieval
         nm = request.POST.get('name')
         mn = request.POST.get('mobile')
         ln = request.POST.get('length')
@@ -464,75 +463,66 @@ def update_add_order_reception(request, dataid):
         model_details = request.POST.get('model_details')
         cloth_id = request.POST.get('cloth_id') or request.POST.get('existing_cloth_id')
         pocket_type = request.POST.get('pocket-type')
+
+        # Handle ordered length safely
         ordered_length_str = request.POST.get('ordered_length', '').strip()
         try:
             if ordered_length_str:
                 ordered_length = Decimal(ordered_length_str)
             elif cloth_id:
-                ordered_length = Decimal(3.5)
+                ordered_length = Decimal('3.5')
             else:
                 ordered_length = None
         except InvalidOperation:
             messages.error(request, "Invalid value for ordered length.")
             return redirect('order_details_reception')
-        cloth_name=None
 
-        if collar_type == 'collar1':
-            collar_image_url = 'images/collarcuff/collor 1.png'
-        elif collar_type == 'collar2':
-            collar_image_url = 'images/collarcuff/collor 2.png'
-        elif collar_type == 'collar3':
-            collar_image_url = 'images/collarcuff/collor 3.png'
-        elif collar_type == 'collar4':
-            collar_image_url = 'images/collarcuff/collor 4.png'
-        else:
-            collar_image_url = None 
+        # Handle collar, cuff, and pocket image URLs
+        collar_map = {
+            'collar1': 'images/collarcuff/collor 1.png',
+            'collar2': 'images/collarcuff/collor 2.png',
+            'collar3': 'images/collarcuff/collor 3.png',
+            'collar4': 'images/collarcuff/collor 4.png',
+        }
+        pocket_map = {
+            'pocket1': 'images/collarcuff/pocket1.png',
+            'pocket2': 'images/collarcuff/pocket2.png',
+            'pocket3': 'images/collarcuff/pocket3.png',
+        }
+        cuff_map = {
+            'cuff1': 'images/collarcuff/cuff 1.png',
+            'cuff2': 'images/collarcuff/cuff 2.png',
+            'cuff3': 'images/collarcuff/cuff 3.png',
+            'cuff4': 'images/collarcuff/cuff 4.png',
+            'cuff5': 'images/collarcuff/cuff 5.png',
+        }
 
-        if pocket_type == 'pocket1':
-            pocket_image_url = 'images/collarcuff/pocket1.png'
-        elif pocket_type == 'pocket2':
-            pocket_image_url = 'images/collarcuff/pocket2.png'
-        elif pocket_type == 'pocket3':
-            pocket_image_url = 'images/collarcuff/pocket3.png'
-        else:
-            pocket_image_url = None 
+        collar_image_url = collar_map.get(collar_type)
+        pocket_image_url = pocket_map.get(pocket_type)
+        cuff_image_url = cuff_map.get(cuff_type)
 
-        if cuff_type == 'cuff1':
-            cuff_image_url = 'images/collarcuff/cuff 1.png'
-        elif cuff_type == 'cuff2':
-            cuff_image_url = 'images/collarcuff/cuff 2.png'
-        elif cuff_type == 'cuff3':
-            cuff_image_url = 'images/collarcuff/cuff 3.png'
-        elif cuff_type == 'cuff4':
-            cuff_image_url = 'images/collarcuff/cuff 4.png'
-        elif cuff_type == 'cuff5':
-            cuff_image_url = 'images/collarcuff/cuff 5.png'
-        else:
-            cuff_image_url = None
-        
-
-        # Get the existing customer
-        customer = Add_order.objects.get(id=dataid)
-
-        # Get the old tailor before updating
-        old_tailor = customer.tailor
-
-        tailor_instance = AddTailors.objects.get(id=tailor_id)
-
-        works_on_delivery_date = Add_order.objects.filter(tailor=tailor_instance, delivery_date=dd).count()
-
-        # Get or create the new tailor instance
-        new_tailor = AddTailors.objects.get(id=tailor_id)
-
+        # Get the order and related data
         order = get_object_or_404(Add_order, id=dataid)
+        old_tailor = order.tailor
+        new_tailor = get_object_or_404(AddTailors, id=tailor_id)
+
+        # --- Update customer details ---
+        if order.customer_id:
+            customer = order.customer_id
+            customer.name = nm
+            customer.mobile = mn
+            customer.save()
+
+        # --- Cloth stock management ---
         previous_ordered_length = order.ordered_length or Decimal('0')
         ordered_length_decimal = ordered_length or Decimal('0')
 
         if cloth_id:
-            # Handling case when cloth_id is provided and valid
             if not order.clothdetails or str(order.clothdetails.id) != cloth_id or previous_ordered_length != ordered_length_decimal:
                 length_difference = ordered_length_decimal - previous_ordered_length
+
                 if order.clothdetails and str(order.clothdetails.id) == cloth_id:
+                    # Adjust stock for same cloth
                     if ordered_length_decimal < previous_ordered_length:
                         order.clothdetails.stock_length += abs(length_difference)
                     else:
@@ -542,11 +532,13 @@ def update_add_order_reception(request, dataid):
                             messages.error(request, "Not enough cloth stock available.")
                             return redirect('order_details_reception')
                 else:
+                    # Handle previous cloth restore
                     if order.clothdetails:
-                        previous_cloth = get_object_or_404(Cloth, pk=order.clothdetails.id)
-                        previous_cloth.stock_length += previous_ordered_length
-                        previous_cloth.save()
+                        prev_cloth = get_object_or_404(Cloth, pk=order.clothdetails.id)
+                        prev_cloth.stock_length += previous_ordered_length
+                        prev_cloth.save()
 
+                    # Handle new cloth deduction
                     new_cloth = get_object_or_404(Cloth, pk=cloth_id)
                     if new_cloth.stock_length >= ordered_length_decimal:
                         new_cloth.stock_length -= ordered_length_decimal
@@ -558,35 +550,60 @@ def update_add_order_reception(request, dataid):
                 if order.clothdetails:
                     order.clothdetails.save()
         else:
-            # **Handling case when cloth_id is empty (remove cloth selection)**
+            # No cloth selected — restore old stock
             if order.clothdetails:
-                previous_cloth = get_object_or_404(Cloth, pk=order.clothdetails.id)
-                previous_cloth.stock_length += previous_ordered_length
-                previous_cloth.save()
+                prev_cloth = get_object_or_404(Cloth, pk=order.clothdetails.id)
+                prev_cloth.stock_length += previous_ordered_length
+                prev_cloth.save()
             order.clothdetails = None
             ordered_length = None
 
-        cloth_name=order.clothdetails.name
-        # Update assigned_works for the old tailor and new tailor
+        cloth_name = order.clothdetails.name if order.clothdetails else None
+
+        # --- Tailor reassignment ---
         if old_tailor != new_tailor:
             old_tailor.assigned_works -= 1
             old_tailor.save()
             new_tailor.assigned_works += 1
             new_tailor.save()
-        Add_order.objects.filter(id=dataid).update(length=ln, shoulder=sd, loose=lo, 
-                                                   regal=rg, sleeve_sada=sl,cloth_name=cloth_name,
-                                                   sleeve_cuff=sll, pocket=po, bottom1=b1, seat=b2,
-                                                   total_payment=tp,advance_payment=ap,balance_payment=bp,
-                                                   order_date=od, delivery_date=dd, tailor=new_tailor,
-                                                   button_type=bt,model_details=model_details,
-                                                    cuff_measurements=cuff_measurment,collar_type_image_url=collar_image_url,
-                                                    cuff_type_image_url=cuff_image_url, collar_measurements=collar_measurment,
-                                                    collar_type=collar_type,cuff_type=cuff_type,center_sleeve=center_sleeve,
-                                                    description=other,sleeve_bottom=sb,pocket_type=pocket_type,ordered_length=ordered_length,
-                                                    clothdetails=order.clothdetails,pocket_image_url=pocket_image_url)
 
-    messages.success(request, "Customer Details Updated Successfully...!")
-    return redirect(order_details_reception)
+        # --- Order update ---
+        Add_order.objects.filter(id=dataid).update(
+            length=ln,
+            shoulder=sd,
+            loose=lo,
+            regal=rg,
+            sleeve_sada=sl,
+            cloth_name=cloth_name,
+            sleeve_cuff=sll,
+            pocket=po,
+            bottom1=b1,
+            seat=b2,
+            total_payment=tp,
+            advance_payment=ap,
+            balance_payment=bp,
+            order_date=od,
+            delivery_date=dd,
+            tailor=new_tailor,
+            button_type=bt,
+            model_details=model_details,
+            cuff_measurements=cuff_measurment,
+            collar_type_image_url=collar_image_url,
+            cuff_type_image_url=cuff_image_url,
+            collar_measurements=collar_measurment,
+            collar_type=collar_type,
+            cuff_type=cuff_type,
+            center_sleeve=center_sleeve,
+            description=other,
+            sleeve_bottom=sb,
+            pocket_type=pocket_type,
+            ordered_length=ordered_length,
+            clothdetails=order.clothdetails,
+            pocket_image_url=pocket_image_url
+        )
+
+        messages.success(request, "Customer Details Updated Successfully...!")
+        return redirect(order_details_reception) 
 
 
 def save_add_order_recption(request):
