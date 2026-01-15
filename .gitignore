@@ -1,5 +1,53 @@
-__pycache__
+# Byte-compiled / optimized / DLL files
 __pycache__/
-db.sqlite3
-migrations
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg
+.env
+.venv
+env/
+venv/
+venv_linux/
 
+# Databases
+*.sqlite3
+*.db
+
+# OS-specific files
+.DS_Store
+.Trashes
+Thumbs.db
+
+# Django stuff:
+*.log
+local_settings.py
+.idea/
+staticfiles/ # Added staticfiles/
+
+# My IDE/editor files
+.vscode/
+.history/
+
+# Coverage reports
+.coverage
+.coverage.*
+htmlcov/
+
+# dotenv files
+.env
+.flaskenv
+
+# virtualenv
+.venv
