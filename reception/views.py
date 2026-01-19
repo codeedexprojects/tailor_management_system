@@ -434,7 +434,7 @@ def edit_order_reception(request, dataid):
 
 def update_add_order_reception(request, dataid):
     if request.method == "POST":
-        # Basic field retrieval
+        # --- Basic field retrieval ---
         nm = request.POST.get('name')
         mn = request.POST.get('mobile')
         ln = request.POST.get('length')
@@ -464,7 +464,7 @@ def update_add_order_reception(request, dataid):
         cloth_id = request.POST.get('cloth_id') or request.POST.get('existing_cloth_id')
         pocket_type = request.POST.get('pocket-type')
 
-        # Handle ordered length safely
+        # --- Handle ordered length safely ---
         ordered_length_str = request.POST.get('ordered_length', '').strip()
         try:
             if ordered_length_str:
@@ -477,7 +477,7 @@ def update_add_order_reception(request, dataid):
             messages.error(request, "Invalid value for ordered length.")
             return redirect('order_details_reception')
 
-        # Handle collar, cuff, and pocket image URLs
+        # --- Image Maps ---
         collar_map = {
             'collar1': 'images/collarcuff/collor 1.png',
             'collar2': 'images/collarcuff/collor 2.png',
@@ -501,10 +501,14 @@ def update_add_order_reception(request, dataid):
         pocket_image_url = pocket_map.get(pocket_type)
         cuff_image_url = cuff_map.get(cuff_type)
 
-        # Get the order and related data
+        # --- Get the order and related data ---
         order = get_object_or_404(Add_order, id=dataid)
         old_tailor = order.tailor
-        new_tailor = get_object_or_404(AddTailors, id=tailor_id)
+        
+        # Safely fetch new tailor
+        new_tailor = None
+        if tailor_id:
+            new_tailor = get_object_or_404(AddTailors, id=tailor_id)
 
         # --- Update customer details ---
         if order.customer_id:
@@ -560,12 +564,21 @@ def update_add_order_reception(request, dataid):
 
         cloth_name = order.clothdetails.name if order.clothdetails else None
 
-        # --- Tailor reassignment ---
+        # --- Tailor reassignment & Night Shift Logic ---
         if old_tailor != new_tailor:
-            old_tailor.assigned_works -= 1
-            old_tailor.save()
-            new_tailor.assigned_works += 1
-            new_tailor.save()
+            # Decrease count for old tailor (if they exist)
+            if old_tailor:
+                old_tailor.assigned_works = max(0, (old_tailor.assigned_works or 0) - 1)
+                old_tailor.save()
+            
+            # Increase count for new tailor (if one is assigned)
+            if new_tailor:
+                new_tailor.assigned_works = (new_tailor.assigned_works or 0) + 1
+                new_tailor.save()
+
+        # Define Shift based on time (Night Shift: 8 PM to 8 AM)
+        current_hour = timezone.now().hour
+        is_night_shift = current_hour >= 20 or current_hour < 8
 
         # --- Order update ---
         Add_order.objects.filter(id=dataid).update(
@@ -599,11 +612,16 @@ def update_add_order_reception(request, dataid):
             pocket_type=pocket_type,
             ordered_length=ordered_length,
             clothdetails=order.clothdetails,
-            pocket_image_url=pocket_image_url
+            pocket_image_url=pocket_image_url,
+            # If you have a shift field in your model, uncomment below:
+            # shift="Night" if is_night_shift else "Day"
         )
 
         messages.success(request, "Customer Details Updated Successfully...!")
-        return redirect(order_details_reception) 
+        return redirect('order_details_reception')
+
+    # If not POST, you'd likely want to handle the GET or redirect
+    return redirect('order_details_reception')
 
 
 def save_add_order_recption(request):
