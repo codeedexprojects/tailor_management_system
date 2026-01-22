@@ -561,9 +561,11 @@ def update_add_order_reception(request, dataid):
         cloth_name = order.clothdetails.name if order.clothdetails else None
 
         # --- Tailor reassignment ---
+        # --- Tailor reassignment ---
         if old_tailor != new_tailor:
-            old_tailor.assigned_works -= 1
-            old_tailor.save()
+            if old_tailor:
+                old_tailor.assigned_works -= 1
+                old_tailor.save()
             new_tailor.assigned_works += 1
             new_tailor.save()
 

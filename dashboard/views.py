@@ -1108,9 +1108,11 @@ def update_add_order(request, dataid):
             customer.save()
             
         # Update assigned_works for the old tailor and new tailor
+        # Update assigned_works for the old tailor and new tailor
         if old_tailor != new_tailor:
-            old_tailor.assigned_works -= 1
-            old_tailor.save()
+            if old_tailor:
+                old_tailor.assigned_works -= 1
+                old_tailor.save()
             new_tailor.assigned_works += 1
             new_tailor.save()
         Add_order.objects.filter(id=dataid).update(length=ln, shoulder=sd, loose=lo, 
