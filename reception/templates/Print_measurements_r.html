@@ -6,61 +6,165 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Customer Bill</title>
 <style>
-    body {
-        font-family: Arial, sans-serif;
+    @page {
+        size: A4;
+        margin: 3mm;
+    }
+
+    * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
     }
+
+    body {
+        font-family: Arial, sans-serif;
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .page {
+        width: 204mm;  /* 210mm - 2 * 3mm margin */
+        height: 291mm; /* 297mm - 2 * 3mm margin */
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+    }
+    
     header {
         text-align: center;
-        margin-top: 10px;
+        margin-bottom: 2mm;
+        height: 40mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
-    img {
-        width: 150px;
+    
+    header img {
+        width: 100px;
+        height: auto;
+        margin-bottom: 2mm;
     }
-    .page {
-        width: 210mm; /* A4 width */
-        height: 297mm; /* A4 height */
-        padding-right:5mm; /* A4 margins */
-        background-color: #ffffff;
-        {% comment %} box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); {% endcomment %}
-        margin: auto;
+    
+    header h5 {
+        font-size: 20px;
+        font-weight: bold;
     }
+    
+    .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        height: calc(291mm - 40mm - 50mm); /* Total height minus header and cutting section */
+    }
+    
     table {
         width: 100%;
         border-collapse: collapse;
+        flex: 1;
     }
+    
     th, td {
-        border: 1px solid #dddddd;
+        border: 1.5px solid #000000;
+        padding: 5px 6px;
         text-align: left;
-        padding: 8px;
+        font-size: 18px;
+        line-height: 1.2;
+        height: 7mm;
     }
+    
     th {
         background-color: #f2f2f2;
+        font-weight: bold;
+        width: 25%;
     }
-    td{
-        font-size: 23px;
+    
+    .th2 {
+        text-align: center;
+        width: 25%;
     }
+    
+    td img {
+        max-width: 65px;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+    
     .already-printed {
         color: red;
         font-weight: bold;
         text-align: center;
-        margin-top: 20px;
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%) rotate(-45deg);
         opacity: 0.3;
-        font-size: 4em;
+        font-size: 72px;
         white-space: nowrap;
-        z-index:1;
+        z-index: 1;
     }
-    .th2{
+    
+    .cutting-section {
+        border: 2px dashed #000;
+        padding: 6mm;
+        height: 50mm;
+        margin-top: auto;
+    }
+    
+    .cutting-section h3 {
         text-align: center;
+        margin-bottom: 4mm;
+        text-transform: uppercase;
+        border-bottom: 2px solid #000;
+        padding-bottom: 2mm;
+        font-size: 16px;
+        font-weight: bold;
     }
+    
+    .cutting-details {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3mm;
+    }
+    
+    .cutting-item {
+        display: flex;
+        gap: 3mm;
+        align-items: baseline;
+        font-size: 18px;
+    }
+    
+    .cutting-label {
+        font-weight: bold;
+        min-width: 90px;
+    }
+    
+    .cutting-value {
+        flex: 1;
+    }
+    
     @media print {
-        .not-for-print { display: none; }
-        @page { size: portrait; }
+        html, body {
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page {
+            margin: 3mm;
+            margin-top: -20px;
+        }
+        
+        .not-for-print {
+            display: none;
+        }
     }
 </style>
 </head>
@@ -73,11 +177,14 @@
                 <div class="already-printed">Already Printed</div>
             {% endif %}
         </header>
-        <div class="not-for-print" style="text-align: center; margin-bottom: 10px;margin-top: 10px;">
+        
+        <div class="not-for-print" style="text-align: center; margin-bottom: 5mm;">
             <button id="printButton">Print</button>
         </div>
-        <table>
-            <tbody>
+        
+        <div class="main-content">
+            <table>
+                <tbody>
                 <tr>
                     <th>CUSTOMER NAME</th>
                     <td>{{ order.customer_id.name }}</td>
@@ -173,48 +280,78 @@
                     <th>TAILOR</th>
                     <td>{{order.tailor}}</td>
                 </tr>
-                <!-- Add more rows as needed -->
             </tbody>
         </table>
+
+        <!-- Cutting Section -->
+         <div class="cutting-section">
+                <h3>Amana</h3>
+                <div class="cutting-details">
+                    <div class="cutting-item">
+                        <span class="cutting-label">Bill Number:</span>
+                        <span class="cutting-value">{{ order.bill_number }}</span>
+                    </div>
+                    <div class="cutting-item">
+                        <span class="cutting-label">Customer:</span>
+                        <span class="cutting-value">{{ order.customer_id.name }}</span>
+                    </div>
+                    <div class="cutting-item">
+                        <span class="cutting-label">Mobile:</span>
+                        <span class="cutting-value">{{ order.customer_id.mobile }}</span>
+                    </div>
+                    <div class="cutting-item">
+                        <span class="cutting-label">Length:</span>
+                        <span class="cutting-value">{{order.length}}</span>
+                    </div>
+                    <div class="cutting-item">
+                        <span class="cutting-label">Order Date:</span>
+                        <span class="cutting-value">{{ order.order_date }}</span>
+                    </div>
+                    <div class="cutting-item">
+                        <span class="cutting-label">Delivery Date:</span>
+                        <span class="cutting-value">{{ order.delivery_date }}</span>
+                    </div>
+                    <div class="cutting-item" style="grid-column: 1 / -1;">
+                        <span class="cutting-label">Description:</span>
+                        <span class="cutting-value">{{ order.description }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<script>
-    $(document).ready(function () {
-        // Function to update print status
-        function updatePrintStatus() {
-            $.ajax({
-                url: '{% url 'update_print_status_r' customer_id=order.id %}',
-                type: 'POST',
-                data: {
-                    csrfmiddlewaretoken: '{{ csrf_token }}'
-                },
-                success: function (response) {
-                    if (response.status === 'success') {
-                        console.log('Print status updated successfully.');
-                    } else {
-                        console.error('Failed to update print status.');
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            function updatePrintStatus() {
+                $.ajax({
+                    url: '{% url 'update_print_status_r' customer_id=order.id %}',
+                    type: 'POST',
+                    data: {
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            console.log('Print status updated successfully.');
+                        } else {
+                            console.error('Failed to update print status.');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Error occurred while updating print status:', error);
                     }
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error occurred while updating print status:', error);
-                }
+                });
+            }
+
+            window.onbeforeprint = function () {
+                updatePrintStatus();
+            };
+
+            $('#printButton').on('click', function () {
+                updatePrintStatus();
+                window.print();
             });
-        }
-
-        // Attach event listener for before printing
-        window.onbeforeprint = function () {
-            updatePrintStatus();
-        };
-
-        // Attach event listener for print button click
-        $('#printButton').on('click', function () {
-            updatePrintStatus();
-            window.print();
         });
-    });
-</script>
-
+    </script>
 </body>
 </html>
