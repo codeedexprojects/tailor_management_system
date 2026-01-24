@@ -54,7 +54,7 @@ def search_mobile_recption(request):
     if 'q' in request.GET:
         query = request.GET['q']
 
-        results['customer'] = Add_order.objects.filter(customer_id__mobile__icontains=query).exclude(customer_id__mobile__isnull=True).exclude(customer_id__mobile__exact='').order_by('-id')
+        results['customer'] = Add_order.objects.select_related('clothdetails', 'customer_id', 'tailor').filter(customer_id__mobile__icontains=query).exclude(customer_id__mobile__isnull=True).exclude(customer_id__mobile__exact='').order_by('-id')
 
     return render(request, 'search_reception.html', {'results': results, 'query': query})
 
@@ -372,7 +372,7 @@ def save_items_recption(request):
 
 
 def order_details_reception(request):
-    cus = Add_order.objects.all().order_by('-id')
+    cus = Add_order.objects.select_related('clothdetails', 'customer_id', 'tailor').all().order_by('-id')
     if request.method == "POST":
         from_date_str = request.POST.get('textfield')
         to_date_str = request.POST.get('textfield2')
@@ -381,7 +381,7 @@ def order_details_reception(request):
         if from_date_str and to_date_str:
             from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
             to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
-            cus = Add_order.objects.filter(delivery_date__range=[from_date, to_date]).order_by('-id')
+            cus = Add_order.objects.select_related('clothdetails', 'customer_id', 'tailor').filter(delivery_date__range=[from_date, to_date]).order_by('-id')
 
         if export:  # If export button was clicked, generate the CSV
             response = HttpResponse(content_type='text/csv')
@@ -944,7 +944,7 @@ def select_dates_recption(request):
     return render(request, "tailor_work_reception.html")
 
 def customer_bill_reception(request, customer_id):
-    order = get_object_or_404(Add_order, id=customer_id)
+    order = get_object_or_404(Add_order.objects.select_related('clothdetails', 'customer_id', 'tailor'), id=customer_id)
     items = Item.objects.filter(order_id=customer_id)
     return render(request, 'Print_measurements_r.html', {'order': order, 'items': items})
 
