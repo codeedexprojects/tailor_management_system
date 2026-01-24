@@ -424,7 +424,24 @@
 <script>
     function addFraction(inputId, fraction) {
         var input = document.getElementById(inputId);
-        input.value += fraction;
+
+        // Get the current cursor position
+        var startPos = input.selectionStart;
+        var endPos = input.selectionEnd;
+
+        // Split the text into before and after cursor
+        var textBefore = input.value.substring(0, startPos);
+        var textAfter = input.value.substring(endPos, input.value.length);
+
+        // Insert fraction at cursor position
+        input.value = textBefore + fraction + textAfter;
+
+        // Set cursor position after the inserted fraction
+        var newCursorPos = startPos + fraction.length;
+        input.setSelectionRange(newCursorPos, newCursorPos);
+
+        // Keep focus on the input field
+        input.focus();
     }
 </script>
 <script>
