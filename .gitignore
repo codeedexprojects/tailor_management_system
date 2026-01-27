@@ -33,6 +33,9 @@ Thumbs.db
 local_settings.py
 .idea/
 staticfiles/ # Added staticfiles/
+*.sqlite3
+*.db
+db.sqlite3
 
 # My IDE/editor files
 .vscode/
