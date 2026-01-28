@@ -421,9 +421,25 @@ def deliver_order_reception(request, order_id):
         return redirect('reception_indexpage')
 
 def add_order_recption(request, dataid):
-    add = Customer.objects.get(id=dataid)
+    # dataid could be either a Customer ID or an Order ID
+    # Try to get as Order first (from search results)
+    try:
+        order = Add_order.objects.get(id=dataid)
+        customer = order.customer_id
+        add = order  # Use the specific order's data
+    except Add_order.DoesNotExist:
+        # If not an order, treat as Customer ID (from customer list)
+        customer = Customer.objects.get(id=dataid)
+        # Get the most recent order for this customer
+        latest_order = Add_order.objects.filter(customer_id=customer).order_by('-id').first()
+        if latest_order:
+            add = latest_order  # Use latest order's data
+        else:
+            add = customer  # Use customer's base data
+
     cloths=Cloth.objects.all()
-    return render(request, "Add_order_reception.html", {"add": add,'cloths':cloths})
+    # Always pass customer_id separately so the form can save correctly
+    return render(request, "Add_order_reception.html", {"add": add, 'cloths':cloths, 'customer_id': customer.id})
 
 
 def edit_order_reception(request, dataid):
