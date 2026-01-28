@@ -439,7 +439,7 @@ def add_order_recption(request, dataid):
 
     cloths=Cloth.objects.all()
     # Always pass customer_id separately so the form can save correctly
-    return render(request, "Add_order_reception.html", {"add": add, 'cloths':cloths, 'customer_id': customer.id})
+    return render(request, "Add_order_reception.html", {"add": add, 'cloths':cloths, 'customer': customer, 'customer_id': customer.id})
 
 
 def edit_order_reception(request, dataid):
