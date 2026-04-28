@@ -251,22 +251,35 @@ def savecustomer_recption(request):
         tailor_instance.save()
 
         try:
-            # Generate a unique bill_number sequentially
+            # Generate a unique bill_number sequentially (format: AA001–ZZ999 = 675,324 max)
             last_bill_number = Add_order.objects.order_by('-bill_number').first()
 
             if last_bill_number:
-                last_bill_chars = last_bill_number.bill_number[:1]  # Extract the first character
-                last_bill_digits = int(last_bill_number.bill_number[1:])  # Extract the digits
-
-                if last_bill_chars == 'Z' and last_bill_digits == 999:
-                    raise ValueError("Cannot generate more bills")
-                elif last_bill_digits == 999:
-                    next_chars = chr(ord(last_bill_chars) + 1)  # Increment the character
-                    if next_chars > 'Z':  # Check if the next character exceeds 'Z'
-                        raise ValueError("Cannot generate more bills")
-                    bill_number = f"{next_chars}001"  # Reset digits to "001"
+                raw = last_bill_number.bill_number
+                # Support legacy single-char prefix (e.g. "V285") and new two-char prefix (e.g. "AA001")
+                if len(raw) <= 4:
+                    prefix = raw[:-3].zfill(1) if len(raw) == 4 else raw[:1]
+                    digits = int(raw[-3:])
                 else:
-                    bill_number = f"{last_bill_chars}{last_bill_digits + 1:03d}"  # Increment digits
+                    prefix = raw[:-3]
+                    digits = int(raw[-3:])
+
+                if digits < 999:
+                    bill_number = f"{prefix}{digits + 1:03d}"
+                else:
+                    # Increment the prefix: A→B, Z→AA, AA→AB, AZ→BA, ZZ→AAA (practically unreachable)
+                    chars = list(prefix)
+                    pos = len(chars) - 1
+                    while pos >= 0:
+                        if chars[pos] < 'Z':
+                            chars[pos] = chr(ord(chars[pos]) + 1)
+                            break
+                        else:
+                            chars[pos] = 'A'
+                            pos -= 1
+                    else:
+                        chars = ['A'] + ['A'] * len(chars)  # extend prefix length
+                    bill_number = f"{''.join(chars)}001"
             else:
                 bill_number = "A001"
 
@@ -737,25 +750,37 @@ def save_add_order_recption(request):
         # Get or create the tailor instance
         customer_instance = Customer.objects.get(id=id)
         try:
-            # Generate a unique bill_number sequentially
+            # Generate a unique bill_number sequentially (format: AA001–ZZ999 = 675,324 max)
             last_bill_number = Add_order.objects.order_by('-bill_number').first()
 
             if last_bill_number:
-                last_bill_chars = last_bill_number.bill_number[:1]  # Extract the first character
-                last_bill_digits = int(last_bill_number.bill_number[1:])  # Extract the digits
-
-                if last_bill_chars == 'Z' and last_bill_digits == 999:
-                    raise ValueError("Cannot generate more bills")
-                elif last_bill_digits == 999:
-                    next_chars = chr(ord(last_bill_chars) + 1)  # Increment the character
-                    if next_chars > 'Z':  # Check if the next character exceeds 'Z'
-                        raise ValueError("Cannot generate more bills")
-                    bill_number = f"{next_chars}001"  # Reset digits to "001"
+                raw = last_bill_number.bill_number
+                # Support legacy single-char prefix (e.g. "V285") and new two-char prefix (e.g. "AA001")
+                if len(raw) <= 4:
+                    prefix = raw[:-3].zfill(1) if len(raw) == 4 else raw[:1]
+                    digits = int(raw[-3:])
                 else:
-                    bill_number = f"{last_bill_chars}{last_bill_digits + 1:03d}"  # Increment digits
+                    prefix = raw[:-3]
+                    digits = int(raw[-3:])
+
+                if digits < 999:
+                    bill_number = f"{prefix}{digits + 1:03d}"
+                else:
+                    # Increment the prefix: A→B, Z→AA, AA→AB, AZ→BA, ZZ→AAA (practically unreachable)
+                    chars = list(prefix)
+                    pos = len(chars) - 1
+                    while pos >= 0:
+                        if chars[pos] < 'Z':
+                            chars[pos] = chr(ord(chars[pos]) + 1)
+                            break
+                        else:
+                            chars[pos] = 'A'
+                            pos -= 1
+                    else:
+                        chars = ['A'] + ['A'] * len(chars)  # extend prefix length
+                    bill_number = f"{''.join(chars)}001"
             else:
                 bill_number = "A001"
-
 
             # Create the customer instance
             obj = Add_order(customer_id=customer_instance, length=ln, shoulder=sd, loose=lo,  regal=rg,
